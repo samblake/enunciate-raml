@@ -14,6 +14,11 @@ import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
 
 public class RamlResourceMethodAdapter extends Annotable<Method> implements RamlResourceMethod {
+    private static final String PARAM_HEADER = "header";
+    private static final String PARAM_FORM = "form";
+    private static final String PARAM_PATH = "path";
+    private static final String PARAM_QUERY = "query";
+
     private final Method method;
 
     public RamlResourceMethodAdapter(Method method) {
@@ -45,7 +50,7 @@ public class RamlResourceMethodAdapter extends Annotable<Method> implements Raml
     @Override
     public List<RamlQueryParameter> getQueryParameters() {
         return method.getParameters().stream()
-                .filter(param -> !isHeaderParameter(param))
+                .filter(param -> param.getTypeLabel().equals(PARAM_PATH) || param.getTypeLabel().equals(PARAM_QUERY))
                 .map(RamlQueryParameterAdapter::new)
                 .collect(toList());
     }
@@ -53,18 +58,17 @@ public class RamlResourceMethodAdapter extends Annotable<Method> implements Raml
     @Override
     public List<RamlHeaderParameter> getHeaderParameters() {
         return method.getParameters().stream()
-                .filter(param -> isHeaderParameter(param))
+                .filter(param -> param.getTypeLabel().equals(PARAM_HEADER))
                 .map(RamlHeaderParameterAdapter::new)
                 .collect(toList());
     }
 
-    private boolean isHeaderParameter(Parameter param) {
-        return param.getTypeLabel().equals("header");
-    }
-
     @Override
     public List<RamlFormParameter> getFormParameters() {
-        return emptyList();
+        return method.getParameters().stream()
+                .filter(param -> param.getTypeLabel().equals(PARAM_FORM))
+                .map(RamlFormParameterAdapter::new)
+                .collect(toList());
     }
 
     @Override

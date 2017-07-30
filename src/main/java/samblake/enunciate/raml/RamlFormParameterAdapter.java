@@ -1,7 +1,11 @@
 package samblake.enunciate.raml;
 
-/**
- * Created by sam on 7/30/17.
- */
-public class RamlFormParameterAdapter {
+import com.webcohesion.enunciate.api.resources.Parameter;
+import org.raml.api.RamlFormParameter;
+
+public class RamlFormParameterAdapter extends RamlParameterAdapter implements RamlFormParameter {
+
+    public RamlFormParameterAdapter(Parameter parameter) {
+        super(parameter);
+    }
 }
