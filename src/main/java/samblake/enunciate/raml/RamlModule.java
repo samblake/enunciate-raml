@@ -12,16 +12,26 @@ import com.webcohesion.enunciate.artifacts.ArtifactType;
 import com.webcohesion.enunciate.artifacts.ClientLibraryArtifact;
 import com.webcohesion.enunciate.artifacts.FileArtifact;
 import com.webcohesion.enunciate.module.*;
-import org.raml.api.RamlApi;
-import org.raml.emitter.FileEmitter;
-import org.raml.emitter.RamlEmissionException;
+import com.webcohesion.enunciate.util.freemarker.FileDirective;
+import freemarker.cache.URLTemplateLoader;
+import freemarker.core.Environment;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import freemarker.template.TemplateExceptionHandler;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Arrays;
+import java.io.StringWriter;
+import java.io.Writer;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import static java.util.Collections.singletonList;
 
 public class RamlModule extends BasicGeneratingModule implements ApiRegistryAwareModule {
 
@@ -40,7 +50,7 @@ public class RamlModule extends BasicGeneratingModule implements ApiRegistryAwar
     @Override
     public List<DependencySpec> getDependencySpecifications() {
         // depends on any module that provides something to the api registry.
-        return Arrays.asList((DependencySpec) new DependencySpec() {
+        return singletonList((DependencySpec) new DependencySpec() {
             @Override
             public boolean accept(EnunciateModule module) {
                 return module instanceof ApiFeatureProviderModule;
@@ -74,12 +84,9 @@ public class RamlModule extends BasicGeneratingModule implements ApiRegistryAwar
                     return;
                 }
 
-                RamlApi raml = createModel(context, resourceApis, syntaxes, serviceApis);
-
-                srcDir.mkdirs();// make sure the docs dir exists
-
-                File file = new File(srcDir, getSlug() + "." + getName());
-                FileEmitter.forFile(file.toPath()).emit(raml);
+                srcDir.mkdirs(); // make sure the src dir exists
+                Map<String, Object> model = createModel(context, resourceApis, syntaxes, serviceApis, srcDir);
+                processTemplate(getRamlTemplateURL(), model);
             }
             else {
                 info("Skipping RAML generation as everything appears up-to-date...");
@@ -87,8 +94,75 @@ public class RamlModule extends BasicGeneratingModule implements ApiRegistryAwar
 
             createArtifact(srcDir);
         }
-        catch (RamlEmissionException e) {
-            throw new EnunciateException(e);
+        catch (IOException | TemplateException e) {
+            throw new EnunciateException("Could not generate RAML", e);
+        }
+    }
+
+    /**
+     * Processes the specified template with the given model.
+     *
+     * @param templateURL The template URL.
+     * @param model       The root model.
+     */
+    private void processTemplate(URL templateURL, Object model) throws IOException, TemplateException {
+        debug("Processing template %s.", templateURL);
+        Configuration configuration = new Configuration(Configuration.VERSION_2_3_22);
+
+        configuration.setTemplateLoader(new URLTemplateLoader() {
+            protected URL getURL(String name) {
+                try {
+                    return new URL(name);
+                }
+                catch (MalformedURLException e) {
+                    return null;
+                }
+            }
+        });
+
+        configuration.setTemplateExceptionHandler(new TemplateExceptionHandler() {
+            public void handleTemplateException(TemplateException templateException, Environment environment, Writer writer) throws TemplateException {
+                throw templateException;
+            }
+        });
+
+        configuration.setLocalizedLookup(false);
+        configuration.setDefaultEncoding("UTF-8");
+        configuration.setURLEscapingCharset("UTF-8");
+        Template template = configuration.getTemplate(templateURL.toString());
+        StringWriter unhandledOutput = new StringWriter();
+        template.process(model, unhandledOutput);
+        debug("Freemarker processing output:\n%s", unhandledOutput);
+    }
+
+    /**
+     * The url to the freemarker XML processing template that will be used to transforms the docs.xml to the site documentation. For more
+     * information, see http://freemarker.sourceforge.net/docs/xgui.html
+     *
+     * @return The url to the freemarker XML processing template.
+     */
+    public File getFreemarkerTemplateFile() {
+        String templatePath = this.config.getString("[@freemarkerTemplate]");
+        return templatePath == null ? null : resolveFile(templatePath);
+    }
+
+    /**
+     * The URL to the Freemarker template for processing the base documentation xml file.
+     *
+     * @return The URL to the Freemarker template for processing the base documentation xml file.
+     */
+    private URL getRamlTemplateURL() throws MalformedURLException {
+        File templateFile = getFreemarkerTemplateFile();
+        if (templateFile != null && !templateFile.exists()) {
+            warn("Unable to use freemarker template at %s: file doesn't exist!", templateFile);
+            templateFile = null;
+        }
+
+        if (templateFile != null) {
+            return templateFile.toURI().toURL();
+        }
+        else {
+            return RamlModule.class.getResource("raml.fmt");
         }
     }
 
@@ -142,15 +216,35 @@ public class RamlModule extends BasicGeneratingModule implements ApiRegistryAwar
      *
      * @return The label for the RAML document.
      */
-    public String getSlug() {
+    private String getSlug() {
         return this.config.getString("[@slug]", this.enunciate.getConfiguration().getSlug());
     }
 
-    private RamlApi createModel(EnunciateContext context, List<ResourceApi> resourceApis,
-                                Set<Syntax> syntaxes, List<ServiceApi> serviceApis) {
+    private Map<String, Object> createModel(EnunciateContext context, List<ResourceApi> resourceApis,
+                                            Set<Syntax> syntaxes, List<ServiceApi> serviceApis, File srcDir) {
 
-        RamlApplication application = new RamlApplication(resourceApis, serviceApis, syntaxes);
-        RamlConfiguration configuration = new RamlConfiguration(context.getConfiguration());
-        return new EnunciateRamlApi(configuration, application);
+        Map<String, Object> model = new HashMap<String, Object>();
+
+        String intro = this.enunciate.getConfiguration().readDescription(context, false);
+        if (intro != null) {
+            model.put("apiDoc", intro);
+        }
+
+        String copyright = this.enunciate.getConfiguration().getCopyright();
+        if (copyright != null) {
+            model.put("copyright", copyright);
+        }
+
+        String title = this.enunciate.getConfiguration().getTitle();
+        model.put("title", title == null ? "Web Service API" : title);
+
+        model.put("file", new FileDirective(srcDir, this.enunciate.getLogger()));
+        model.put("fileName", getSlug() + "." + getName());
+
+        model.put("data", syntaxes);
+        model.put("resourceApis", resourceApis);
+        model.put("serviceApis", serviceApis);
+
+        return model;
     }
 }

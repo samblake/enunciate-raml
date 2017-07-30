@@ -1,0 +1,76 @@
+[#ftl]
+[#--
+
+    Copyright © 2017 Sam Adams
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+
+--]
+[#-- @ftlvariable name="resourceApis" type="java.util.List<com.webcohesion.enunciate.api.resources.ResourceApi>" --]
+[#-- @ftlvariable name="serviceApis" type="java.util.List<com.webcohesion.enunciate.api.services.ServiceApi>" --]
+[#-- @ftlvariable name="data" type="java.util.List<com.webcohesion.enunciate.api.datatype.Syntax>" --]
+[#-- @ftlvariable name="title" type="java.lang.String" --]
+[#-- @ftlvariable name="fileName" type="java.lang.String" --]
+[#-- @ftlvariable name="copyright" type="java.lang.String" --]
+[#-- @ftlvariable name="apiDoc" type="java.lang.String" --]
+[@file name=fileName]
+#%RAML 1.0
+title: ${title}
+
+[#list resourceApis as resourceApi]
+[#list resourceApi.resourceGroups as resourceGroup]
+[#list resourceGroup.resources as resource]
+[#list resource.methods as method]
+    ${resource.path}:
+        ${method.label}:[#if parameter.description??]
+            description: ${method.description}[/#if]
+            responses:
+            [#list method.responseCodes as responseCode]
+                ${responseCode}:
+            [/#list]
+                    body:
+                        ${method.label}:
+            [#if method.responseHeaders?size > 0]
+            headers:
+                [#list method.responseHeaders as header]
+                ${header.name}
+                [/#list]
+            [/#if]
+            [#if method.parameters?size > 0]
+            queryParameters:
+            [#list method.parameters as parameter]
+                ${parameter.name}:[#if parameter.description??]
+                    description: ${parameter.description}[/#if]
+                    type: ${parameter.typeLabel}[#if parameter.defaultValue??]
+                    default: ${parameter.defaultValue}[/#if]
+            [/#list]
+            [/#if]
+
+[/#list]
+[/#list]
+[/#list]
+[/#list]
+
+
+
+[#list serviceApis as serviceApi]
+[#list serviceApi.serviceGroups as serviceGroup]
+[#list serviceGroup.services as service]
+[#list service.operations as operation]
+    ${service.label}
+[/#list]
+[/#list]
+[/#list]
+[/#list]
+
+[/@file]
