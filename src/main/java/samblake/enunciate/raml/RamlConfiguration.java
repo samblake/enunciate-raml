@@ -15,18 +15,12 @@ public class RamlConfiguration {
     }
 
     public String getBaseUri() {
-        return configuration.getApplicationRoot();
+        return configuration.getApplicationRoot() == null ? "/"
+                : configuration.getApplicationRoot();
     }
 
     public String getVersion() {
         return configuration.getVersion();
     }
 
-    /*public RamlMediaType getDefaultMediaType() {
-        return defaultMediaType;
-    }
-
-    public Set<Class<? extends Annotation>> getTranslatedAnnotations() {
-        return translatedAnnotations;
-    }*/
 }

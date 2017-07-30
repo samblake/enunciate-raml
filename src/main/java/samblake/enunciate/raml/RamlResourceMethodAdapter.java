@@ -2,6 +2,7 @@ package samblake.enunciate.raml;
 
 import com.google.common.base.Optional;
 import com.webcohesion.enunciate.api.resources.Method;
+import com.webcohesion.enunciate.api.resources.Parameter;
 import org.raml.api.*;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.stream.Collectors;
 import static com.google.common.base.Optional.fromNullable;
 import static com.google.common.base.Optional.of;
 import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 
 public class RamlResourceMethodAdapter extends Annotable<Method> implements RamlResourceMethod {
     private final Method method;
@@ -29,7 +31,7 @@ public class RamlResourceMethodAdapter extends Annotable<Method> implements Raml
         return method.getRequestEntity() == null ? emptyList()
                 : method.getRequestEntity().getMediaTypes().stream()
                     .map(RamlMediaTypeAdapter::new)
-                    .collect(Collectors.toList());
+                    .collect(toList());
     }
 
     @Override
@@ -37,21 +39,27 @@ public class RamlResourceMethodAdapter extends Annotable<Method> implements Raml
         return method.getResponseEntity() == null ? emptyList()
                 : method.getResponseEntity().getMediaTypes().stream()
                     .map(RamlMediaTypeAdapter::new)
-                    .collect(Collectors.toList());
+                    .collect(toList());
     }
 
     @Override
     public List<RamlQueryParameter> getQueryParameters() {
         return method.getParameters().stream()
+                .filter(param -> !isHeaderParameter(param))
                 .map(RamlQueryParameterAdapter::new)
-                .collect(Collectors.toList());
+                .collect(toList());
     }
 
     @Override
     public List<RamlHeaderParameter> getHeaderParameters() {
-        return method.getResponseHeaders().stream()
+        return method.getParameters().stream()
+                .filter(param -> isHeaderParameter(param))
                 .map(RamlHeaderParameterAdapter::new)
-                .collect(Collectors.toList());
+                .collect(toList());
+    }
+
+    private boolean isHeaderParameter(Parameter param) {
+        return param.getTypeLabel().equals("header");
     }
 
     @Override

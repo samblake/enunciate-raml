@@ -29,7 +29,7 @@ public class RamlApplication {
                 .flatMap(resourceApi -> createResources(resourceApi))
                 .collect(Collectors.toList());
 
-/*
+        /*
         for (ServiceApi serviceApi : serviceApis) {
             for (ServiceGroup serviceGroup : serviceApi.getServiceGroups()) {
                 for (Service service : serviceGroup.getServices()) {
@@ -37,7 +37,7 @@ public class RamlApplication {
                 }
             }
         }
-*/
+        */
 
         return resources;
     }
