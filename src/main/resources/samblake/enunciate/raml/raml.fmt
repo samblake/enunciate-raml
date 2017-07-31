@@ -32,14 +32,22 @@ title: ${title}
 [#list resourceGroup.resources as resource]
 [#list resource.methods as method]
     ${resource.path}:
-        ${method.label}:[#if parameter.description??]
+        ${method.label}:[#if method.description??]
             description: ${method.description}[/#if]
             responses:
+                200:
             [#list method.responseCodes as responseCode]
                 ${responseCode}:
             [/#list]
                     body:
-                        ${method.label}:
+                    [#list method.responseEntity.mediaTypes as mediaType]
+                        ${mediaType.mediaType}:
+                            type: ${mediaType.dataType.label}
+                            [#if mediaType.dataType.example??]
+                            example: |
+                                ${mediaType.dataType.example}
+                            [/#if]
+                    [/#list]
             [#if method.responseHeaders?size > 0]
             headers:
                 [#list method.responseHeaders as header]
@@ -49,10 +57,21 @@ title: ${title}
             [#if method.parameters?size > 0]
             queryParameters:
             [#list method.parameters as parameter]
+                [#if parameter.typeLabel == 'path' || parameter.typeLabel == 'query']
                 ${parameter.name}:[#if parameter.description??]
                     description: ${parameter.description}[/#if]
                     type: ${parameter.typeLabel}[#if parameter.defaultValue??]
                     default: ${parameter.defaultValue}[/#if]
+                [/#if]
+            [/#list]
+            headers:
+            [#list method.parameters as parameter]
+                [#if parameter.typeLabel == 'header']
+                ${parameter.name}:[#if parameter.description??]
+                    description: ${parameter.description}[/#if]
+                    type: ${parameter.typeLabel}[#if parameter.defaultValue??]
+                    default: ${parameter.defaultValue}[/#if]
+                [/#if]
             [/#list]
             [/#if]
 
@@ -62,15 +81,26 @@ title: ${title}
 [/#list]
 
 
-
+Services:::
 [#list serviceApis as serviceApi]
 [#list serviceApi.serviceGroups as serviceGroup]
 [#list serviceGroup.services as service]
 [#list service.operations as operation]
-    ${service.label}
+${service.label}
 [/#list]
 [/#list]
 [/#list]
 [/#list]
+:::
+
+
+
+Syntax:::
+[#list data as syntax]
+${syntax}
+[/#list]
+:::
+
+
 
 [/@file]
