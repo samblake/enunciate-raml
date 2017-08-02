@@ -227,12 +227,22 @@ public class RamlModule extends BasicGeneratingModule implements ApiRegistryAwar
 
         String intro = this.enunciate.getConfiguration().readDescription(context, false);
         if (intro != null) {
-            model.put("apiDoc", intro);
+            model.put("intro", intro);
         }
 
         String copyright = this.enunciate.getConfiguration().getCopyright();
         if (copyright != null) {
             model.put("copyright", copyright);
+        }
+
+        String version = this.enunciate.getConfiguration().getVersion();
+        if (version != null) {
+            model.put("version", version);
+        }
+
+        String applicationRoot = this.enunciate.getConfiguration().getApplicationRoot();
+        if (applicationRoot != null) {
+            model.put("applicationRoot", applicationRoot);
         }
 
         String title = this.enunciate.getConfiguration().getTitle();

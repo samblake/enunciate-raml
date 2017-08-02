@@ -22,85 +22,98 @@
 [#-- @ftlvariable name="title" type="java.lang.String" --]
 [#-- @ftlvariable name="fileName" type="java.lang.String" --]
 [#-- @ftlvariable name="copyright" type="java.lang.String" --]
-[#-- @ftlvariable name="apiDoc" type="java.lang.String" --]
+[#-- @ftlvariable name="version" type="java.lang.String" --]
+[#-- @ftlvariable name="applicationRoot" type="java.lang.String" --]
+[#-- @ftlvariable name="intro" type="java.lang.String" --]
 [@file name=fileName]
 #%RAML 1.0
-title: ${title}
+title: ${title}[#if intro??]
+description: ${intro}[/#if][#if version??]
+version: ${version}[/#if][#if applicationRoot??]
+baseUrl: ${applicationRoot}[/#if]
+
+types:
+[#list data as syntax]
+[#list syntax.namespaces as namespace]
+[#if namespace.types?size > 0]
+[#list namespace.types as type]
+    ${type.label}:
+        properties:
+        [#list type.properties as property]
+            ${property.name}:
+                type: ${property.dataType.label}[#if property.description?has_content]
+                description: ${property.description}[/#if][#if property.constraints??]
+                required: ${property.constraints?then('true','false')}[/#if]
+        [/#list]
+[/#list]
+[/#if]
+[/#list]
+[/#list]
 
 [#list resourceApis as resourceApi]
 [#list resourceApi.resourceGroups as resourceGroup]
 [#list resourceGroup.resources as resource]
 [#list resource.methods as method]
-    ${resource.path}:
-        ${method.label}:[#if method.description??]
-            description: ${method.description}[/#if]
-            responses:
-                200:
-            [#list method.responseCodes as responseCode]
-                ${responseCode}:
-            [/#list]
-                    body:
-                    [#list method.responseEntity.mediaTypes as mediaType]
-                        ${mediaType.mediaType}:
-                            type: ${mediaType.dataType.label}
-                            [#if mediaType.dataType.example??]
-                            example: |
-                                ${mediaType.dataType.example}
-                            [/#if]
-                    [/#list]
-            [#if method.responseHeaders?size > 0]
-            headers:
-                [#list method.responseHeaders as header]
-                ${header.name}
+${resource.path}:
+    ${method.label}:[#if method.description??]
+        description: ${method.description}[/#if]
+        responses:
+            200:
+        [#list method.responseCodes as responseCode]
+            ${responseCode}:
+        [/#list]
+                body:
+                [#list method.responseEntity.mediaTypes as mediaType]
+                    ${mediaType.mediaType}:
+                        type: ${mediaType.dataType.label}
+                        [#if mediaType.dataType.example??]
+                        example: |
+                            ${mediaType.dataType.example}
+                        [/#if]
                 [/#list]
-            [/#if]
-            [#if method.parameters?size > 0]
-            queryParameters:
-            [#list method.parameters as parameter]
-                [#if parameter.typeLabel == 'path' || parameter.typeLabel == 'query']
-                ${parameter.name}:[#if parameter.description??]
-                    description: ${parameter.description}[/#if]
-                    type: ${parameter.typeLabel}[#if parameter.defaultValue??]
-                    default: ${parameter.defaultValue}[/#if]
-                [/#if]
+        [#if method.responseHeaders?size > 0]
+        headers:
+            [#list method.responseHeaders as header]
+            ${header.name}
             [/#list]
-            headers:
-            [#list method.parameters as parameter]
-                [#if parameter.typeLabel == 'header']
-                ${parameter.name}:[#if parameter.description??]
-                    description: ${parameter.description}[/#if]
-                    type: ${parameter.typeLabel}[#if parameter.defaultValue??]
-                    default: ${parameter.defaultValue}[/#if]
-                [/#if]
-            [/#list]
-            [/#if]
-
+        [/#if]
+        [#if method.parameters?size > 0]
+        [#assign queryParams = filter(method.parameters, 'query')]
+        [#if queryParams?size > 0]
+        queryParameters:
+        [#list queryParams as parameter]
+            ${parameter.name}:[#if parameter.description??]
+                description: ${parameter.description}[/#if]
+                type: ${parameter.typeLabel}[#if parameter.defaultValue??]
+                default: ${parameter.defaultValue}[/#if]
+        [/#list]
+        [/#if]
+        [#assign headerParams = filter(method.parameters, 'header')]
+        [#if headerParams?size > 0]
+        headers:
+        [#list headerParams as parameter]
+            ${parameter.name}:[#if parameter.description??]
+                description: ${parameter.description}[/#if]
+                type: ${parameter.typeLabel}[#if parameter.defaultValue??]
+                default: ${parameter.defaultValue}[/#if]
+        [/#list]
+        [/#if]
+        [/#if]
 [/#list]
 [/#list]
 [/#list]
 [/#list]
-
-
-Services:::
-[#list serviceApis as serviceApi]
-[#list serviceApi.serviceGroups as serviceGroup]
-[#list serviceGroup.services as service]
-[#list service.operations as operation]
-${service.label}
-[/#list]
-[/#list]
-[/#list]
-[/#list]
-:::
-
-
-
-Syntax:::
-[#list data as syntax]
-${syntax}
-[/#list]
-:::
-
-
 
 [/@file]
+
+[#function filter params name]
+    [#local result = []]
+    [#if params?size >0]
+        [#list params as parameter]
+            [#if parameter.typeLabel == name]
+                [#local result = result + [parameter]]
+            [/#if]
+        [/#list]
+    [/#if]
+    [#return result]
+[/#function]
