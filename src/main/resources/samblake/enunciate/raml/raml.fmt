@@ -71,20 +71,13 @@ ${resource.path}:
                             [@indent str=mediaType.dataType.example.body num=28][/@indent]
                         [/#if]
                 [/#list]
-        [#if method.responseHeaders?size > 0]
-        headers:
-            [#list method.responseHeaders as header]
-            ${header.name}
-            [/#list]
-        [/#if]
         [#if method.parameters?size > 0]
         [#assign queryParams = filter(method.parameters, 'query')]
         [#if queryParams?size > 0]
         queryParameters:
         [#list queryParams as parameter]
             ${parameter.name}:[#if parameter.description?has_content]
-                description: ${parameter.description}[/#if]
-                type: ${parameter.typeName}[#if parameter.defaultValue??]
+                description: ${parameter.description}[/#if][#if parameter.defaultValue??]
                 default: ${parameter.defaultValue}[/#if]
         [/#list]
         [/#if]
@@ -93,8 +86,7 @@ ${resource.path}:
         headers:
         [#list headerParams as parameter]
             ${parameter.name}:[#if parameter.description?has_content]
-                description: ${parameter.description}[/#if]
-                type: ${parameter.typeLabel}[#if parameter.defaultValue??]
+                description: ${parameter.description}[/#if][#if parameter.defaultValue??]
                 default: ${parameter.defaultValue}[/#if]
         [/#list]
         [/#if]
