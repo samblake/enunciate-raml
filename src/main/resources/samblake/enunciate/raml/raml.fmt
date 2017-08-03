@@ -42,8 +42,8 @@ types:
         [#list type.properties as property]
             ${property.name}:
                 type: ${property.dataType.label}[#if property.description?has_content]
-                description: ${property.description}[/#if][#if property.constraints??]
-                required: ${property.constraints?then('true','false')}[/#if]
+                description: ${property.description}[/#if]
+                required: ${property.required?c}
         [/#list]
 [/#list]
 [/#if]
@@ -55,7 +55,7 @@ types:
 [#list resourceGroup.resources as resource]
 [#list resource.methods as method]
 ${resource.path}:
-    ${method.label}:[#if method.description??]
+    ${method.label}:[#if method.description?has_content]
         description: ${method.description}[/#if]
         responses:
             200:
@@ -68,7 +68,7 @@ ${resource.path}:
                         type: ${mediaType.dataType.label}
                         [#if mediaType.dataType.example??]
                         example: |
-                            ${mediaType.dataType.example}
+                            [@indent str=mediaType.dataType.example.body num=28][/@indent]
                         [/#if]
                 [/#list]
         [#if method.responseHeaders?size > 0]
@@ -82,9 +82,9 @@ ${resource.path}:
         [#if queryParams?size > 0]
         queryParameters:
         [#list queryParams as parameter]
-            ${parameter.name}:[#if parameter.description??]
+            ${parameter.name}:[#if parameter.description?has_content]
                 description: ${parameter.description}[/#if]
-                type: ${parameter.typeLabel}[#if parameter.defaultValue??]
+                type: ${parameter.typeName}[#if parameter.defaultValue??]
                 default: ${parameter.defaultValue}[/#if]
         [/#list]
         [/#if]
@@ -92,7 +92,7 @@ ${resource.path}:
         [#if headerParams?size > 0]
         headers:
         [#list headerParams as parameter]
-            ${parameter.name}:[#if parameter.description??]
+            ${parameter.name}:[#if parameter.description?has_content]
                 description: ${parameter.description}[/#if]
                 type: ${parameter.typeLabel}[#if parameter.defaultValue??]
                 default: ${parameter.defaultValue}[/#if]
@@ -117,3 +117,7 @@ ${resource.path}:
     [/#if]
     [#return result]
 [/#function]
+
+[#macro indent str num]
+[#if str?has_content][#list str?split("^", "rm") as line]${""?left_pad(num)+line}[/#list][/#if]
+[/#macro]
