@@ -53,9 +53,9 @@ types:
 [#list resourceApis as resourceApi]
 [#list resourceApi.resourceGroups as resourceGroup]
 [#list resourceGroup.resources as resource]
-[#list resource.methods as method]
 ${resource.path}:
-    ${method.label}:[#if method.description?has_content]
+    [#list resource.methods as method]
+    ${method.label?lower_case}:[#if method.description?has_content]
         description: ${method.description}[/#if]
         responses:
             200:
@@ -91,7 +91,7 @@ ${resource.path}:
         [/#list]
         [/#if]
         [/#if]
-[/#list]
+    [/#list]
 [/#list]
 [/#list]
 [/#list]
